@@ -1,0 +1,39 @@
+<script lang="ts">
+	import { Checkbox as CheckboxPrimitive } from "bits-ui";
+	import CheckIcon from '@lucide/svelte/icons/check';
+	import MinusIcon from '@lucide/svelte/icons/minus';
+	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
+
+	let {
+		ref = $bindable(null),
+		checked = $bindable(false),
+		indeterminate = $bindable(false),
+		class: className,
+		...restProps
+	}: WithoutChildrenOrChild<CheckboxPrimitive.RootProps> = $props();
+</script>
+
+<CheckboxPrimitive.Root
+	bind:ref
+	data-slot="checkbox"
+	class={cn(
+		"flex size-4 items-center justify-center rounded-control border border-border-strong bg-surface transition-colors hover:border-text-muted aria-invalid:border-neg data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground peer relative shrink-0 after:absolute after:-inset-x-3 after:-inset-y-2 disabled:cursor-not-allowed disabled:opacity-50",
+		className
+	)}
+	bind:checked
+	bind:indeterminate
+	{...restProps}
+>
+	{#snippet children({ checked, indeterminate })}
+		<div
+			data-slot="checkbox-indicator"
+			class="[&>svg]:size-3.5 grid place-content-center text-current transition-none"
+		>
+			{#if checked}
+				<CheckIcon />
+			{:else if indeterminate}
+				<MinusIcon />
+			{/if}
+		</div>
+	{/snippet}
+</CheckboxPrimitive.Root>

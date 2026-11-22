@@ -1,0 +1,27 @@
+# Caddy in front of Miserly (copy to Caddyfile; see docker-compose.yml).
+#
+# Miserly gets a host name of its own, so its session cookie isn't shared with other
+# apps on the same machine, and Caddy serves it over HTTPS.
+#
+# A name the public internet can resolve (a domain you own, pointed at this machine):
+# Caddy fetches and renews a certificate by itself.
+#
+# miserly.example.com {
+#     # After the first visit, browsers only open this name over HTTPS.
+#     header Strict-Transport-Security "max-age=31536000"
+#     reverse_proxy miserly:3000
+# }
+#
+# A name only your home network knows (set in your router's DNS or each device's hosts
+# file): Caddy signs the certificate with its own local authority. Each device that opens
+# Miserly must trust that authority once (Caddy's docs: "tls internal", "caddy trust").
+#
+# miserly.home.example {
+#     tls internal
+#     # After the first visit, browsers only open this name over HTTPS.
+#     header Strict-Transport-Security "max-age=31536000"
+#     reverse_proxy miserly:3000
+# }
+#
+# Either way, start Miserly with ORIGIN set to the same address, for example
+# ORIGIN=https://miserly.home.example docker compose up -d

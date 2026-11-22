@@ -1,0 +1,74 @@
+# Self-host setup for Miserly. In the folder holding this file: `docker compose up -d`.
+# It pulls the published image; to build this source instead, see `build:` below.
+#
+# The normal way: Miserly behind a proxy with TLS, on a host name of its own
+# (e.g. https://miserly.home.example), with its own port open only on this machine
+# (127.0.0.1). Uncomment the `caddy` service below, copy Caddyfile.example to
+# Caddyfile and put your host name in both places. Over HTTPS the password and the
+# session cookie can't be read on the network, and the cookie (named
+# __Host-miserly_session) is never sent to another app on the same host.
+#
+# Plain HTTP (the port open to the network, http://nuc:3000) is for a trusted home
+# network only: anyone who can see the traffic can read a password or a session.
+# For that, change the port line to "3000:3000" and ORIGIN to http://<host>:3000.
+#
+# ORIGIN is REQUIRED and must match the address the browser uses. It is used for
+# the CSRF origin check on form POSTs (sign-in, first-run setup, etc.): a
+# mismatched ORIGIN makes those fail with 403, a plain page that says "Cross-site
+# POST form submissions are forbidden". localhost and 127.0.0.1 are different
+# addresses.
+#
+# First start: the log prints a one-time setup code (`docker compose logs miserly`,
+# "miserly setup code: ..."); the setup page asks for it.
+#
+# Data (the SQLite DB) persists in the named volume `miserly-data`, independent
+# of container recreation. To keep it in a folder instead, use `./data:/data`
+# below. Miserly runs as uid 1000, so on Linux that folder must belong to uid
+# 1000 (`sudo chown 1000:1000 data`), or set `user:` to the folder owner's
+# uid:gid. If not, the container stops at once and its log says "unable to open
+# database file". Docker Desktop on Windows needs neither. Rootless Podman: add
+# `:U` to the folder line (`./data:/data:U`).
+#
+# Tested on Docker Desktop 4.86 on Windows 11 (WSL 2): the named volume and a
+# Windows folder; and with Podman 4.9 on RHEL 8.10, root and rootless (`podman run`
+# with these settings). The release also builds linux/arm64; not yet run on an ARM
+# machine or a Mac.
+
+services:
+  miserly:
+    image: ghcr.io/justanothermedialab/miserly:latest
+    # To build this source instead (from src/), replace the image line with:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - miserly-data:/data
+      # A folder instead of the volume (on Linux, `sudo chown 1000:1000 data` first):
+      # - ./data:/data
+    # Or run as the folder's owner (its uid:gid, from `ls -n`):
+    # user: "1001:1001"
+    environment:
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+      # On a network where you trust every device, no setup code (keep the quotes):
+      # MISERLY_SETUP_CODE: "off"
+      # Behind the proxy, uncomment so the log names the visitor's address, not Caddy's:
+      # ADDRESS_HEADER: X-Forwarded-For
+      # XFF_DEPTH: "1"
+    restart: unless-stopped
+
+  # caddy:
+  #   image: caddy:2
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy-data:/data
+  #   restart: unless-stopped
+  #   # and set ORIGIN for miserly above: ORIGIN=https://miserly.home.example docker compose up -d
+
+volumes:
+  miserly-data: {}
+  # caddy-data: {}

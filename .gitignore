@@ -1,0 +1,22 @@
+# Secrets and local settings
+.env
+.env.*
+
+# Local databases (with their WAL and SHM files)
+**/data/*.db*
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node and build output
+node_modules/
+**/.svelte-kit/
+**/build/
+**/dist/
+**/coverage/
+**/test-results/
+**/playwright-report/

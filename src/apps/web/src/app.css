@@ -1,0 +1,1146 @@
+/* ============================================================================
+   Miserly — app theme. Windows 11 / Fluent 2 design language with the gold
+   "Nocturne" identity.
+
+   MATERIALS (D1): opaque-but-layered. A quiet mica-ish GROUND (a fixed CSS
+   gradient + faint gold glows — NOT OS vibrancy, so it renders identically in
+   the hosted browser build and in Electron) carries layered card surfaces
+   (--card / --card-2), translucent warm hairlines (--stroke → --border), soft
+   elevation (--elevation-card), and control veils (--control/-hover). Dark cards
+   are faint white veils over the ground; light cards are solid white — both read
+   as distinct layers via the hairline + elevation, never depending on OS mica.
+
+   TYPE (D2): Segoe UI Variable (the real Fluent family, Windows-native → offline
+   on the desktop target); --display = Segoe Display for headings / the net-worth
+   value / crumb / card titles. Falls back to self-hosted Inter, then system.
+
+   COLOUR (item 3, DESIGN-360 §11.10): neutral grounds and text in both themes
+   (direction A). The accent is the viewer's choice (SET1): Ink by default (near-black fills with a
+   white label in Light, near-white with a dark label in Dark), or Gold, Teal-blue, Indigo, Plum,
+   each solved for ~5:1 in both themes (<html data-accent>, blocks below). The brand is the MARK, a
+   hollow gold diamond (--mark), whatever the accent. Nothing that means something reads --accent:
+   money is --pos/--neg, warnings --warn, charts --chart-area and the --cat set.
+   ========================================================================== */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/inter';
+
+/* Navigation pane in its 48px icon rail (<html data-pane>, see Sidebar.svelte). */
+@custom-variant rail (&:where([data-pane='rail'] *));
+/* Bits UI marks open/closed layers with data-state, never a bare data-open attribute, so the
+   vendored data-open:/data-closed: classes never matched and no overlay ever animated (found in
+   C7.4 had read the classes, not the frames). Tooltips use delayed-/instant-open. */
+@custom-variant data-open (&:where([data-state='open'], [data-state='delayed-open'], [data-state='instant-open']));
+@custom-variant data-closed (&:where([data-state='closed']));
+/* Below the 1100px NavigationView breakpoint (the pane becomes a rail). Replaces max-[1099px]:. */
+@custom-variant narrow (@media (width < 1100px));
+/* A wide window: the register's own Memo column (below it, memo follows the payee). */
+@custom-variant wide (@media (width >= 1300px));
+/* Dark applies when (a) an explicit data-theme="dark" or "black" is set, OR (b) no explicit
+   theme is set (SET1 'system') and the OS prefers dark. SET1 'light' sets
+   data-theme="light" and therefore never matches. Mirrors the token blocks below. */
+@custom-variant dark {
+	&:where([data-theme='dark'], [data-theme='dark'] *, [data-theme='black'], [data-theme='black'] *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: dark) {
+		&:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+			@slot;
+		}
+	}
+}
+
+/* ---- Tokens: light (default) — Fluent 2 light, gold Nocturne ---- */
+:root {
+	/* the ground: neutral, flat in both themes (item 3 direction A; the glows are kept at 0) */
+	--mica-a: #f5f5f5;
+	--mica-b: #eeeeee;
+	--glow-a: rgba(0, 0, 0, 0);
+	--glow-b: rgba(0, 0, 0, 0);
+
+	--bg: #f5f5f5;
+	--base: #ebebeb; /* the title bar + sidebar ground; the page is a layer on it (chrome B) */
+	--surface: #ffffff;
+	--surface-2: #f5f5f5;
+	--surface-3: #ebebeb;
+	--card: #ffffff;
+	--card-2: #fafafa;
+
+	--border: rgba(0, 0, 0, 0.1);
+	--border-strong: rgba(0, 0, 0, 0.16);
+	--divider: rgba(0, 0, 0, 0.07);
+	--control: rgba(0, 0, 0, 0.035);
+	--control-hover: rgba(0, 0, 0, 0.06);
+
+	--text: #1f1f1f;
+	--text-muted: #5c5c5c;
+	--text-faint: #8a8a8a; /* ~3.7:1 — DISABLED + DECORATIVE ONLY: never money, labels or placeholders (A11Y-01) */
+
+	--accent: #1f1f1f;
+	--accent-2: #333333;
+	--accent-ink: #1f1f1f;
+	--accent-weak: rgba(0, 0, 0, 0.06);
+	/* Thin marks drawn in the accent (the selected nav bar, a tab's underline, an editing cell's
+	   underline): the fill, except where the fill is too pale to read as a line (Lime in Light). */
+	--accent-mark: var(--accent);
+	--mark: #a9822f; /* the logo's gold, whatever the accent (the launch page's hollow diamond) */
+	--chart-this: var(--cat-8); /* this month's line: blue, never the money red */
+	--chart-area: rgba(0, 0, 0, 0.04); /* the net worth chart's wash: never the accent (C2b) */
+
+	--pos: #376e3e; /* gain / inflow / asset — ≥4.5:1 on its tinted chip + the ground */
+	--pos-weak: rgba(55, 110, 62, 0.1);
+	--neg: #b03e37; /* loss / outflow / liability — ≥4.5:1 at 12px on cream (A11Y-02) */
+	--neg-weak: rgba(176, 62, 55, 0.1);
+	/* Fluent's warning orange: orange shade30 = colorStatusWarningForeground2, as
+	   shade20 (Foreground1) falls to 4.07:1 on a selected row; >= 5:1 on its own weak fill over a selected
+	   row. Its own hue, apart from the gold accent and the money red. */
+	--warn: #8a3707;
+	--warn-weak: rgba(138, 55, 7, 0.12);
+
+	/* Categorical CHART palette (F2 RD6, DECISIONS-S4 D4): ten swatches validated with the dataviz
+	   script in both themes. No red, green or gold: red and green mean money out and in, gold is
+	   the accent. Categories store the light hex; $lib/swatches maps it to these tokens. */
+	/* Today's hues, contrast fixed: every swatch >= 3:1 on --bg; Dark's near-twins
+	   pulled apart by lightness. A stored category colour still names its slot (lib/swatches). */
+	--cat-1: #0f8fa8;
+	--cat-2: #4a3aa7;
+	--cat-3: #d66992;
+	--cat-4: #8e4ec6;
+	--cat-5: #e76530;
+	--cat-6: #3691cd;
+	--cat-7: #c2389a;
+	--cat-8: #2a78d6;
+	--cat-9: #a0612c;
+	--cat-10: #5c6bc0;
+	--cat-other: #898781; /* residual "Other" bucket — neutral, non-identity */
+
+	/* The open pane's width: 280 by default, resizable 240 to a third of the window and remembered
+	   (app.html sets it before first paint, Sidebar.svelte while dragging). */
+	--sidebar-open: 280px;
+	--topbar-h: 48px;
+	--radius: 8px; /* legacy alias of --radius-overlay (shadcn primitives) */
+	--radius-sm: 4px; /* legacy alias of --radius-control */
+
+	/* ── Component layer (miserly-desktop-shell skill) ──────────────────────
+	   Radius: 4 controls · 8 overlays · pill for status badges only. Heights:
+	   32 standard · 24 dense. Focus: 2px outer (text colour) + 1px inner
+	   (surface), so it reads on every fill incl. gold. The radius + type-ramp
+	   tokens live in @theme below (rounded-control/-overlay, text-caption…). */
+	--control-h: 32px;
+	--control-h-sm: 24px;
+	--focus-outer: var(--text);
+	--focus-inner: var(--surface);
+	--elevation-dialog: 0 0 8px rgba(0, 0, 0, 0.12), 0 14px 28px rgba(0, 0, 0, 0.14); /* Fluent shadow28 */
+	--smoke: rgba(0, 0, 0, 0.3); /* dialog scrim */
+	--elevation-card: 0 2px 6px rgba(0, 0, 0, 0.06);
+	--shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
+	--shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.14);
+
+	--mono: 'SFMono-Regular', ui-monospace, 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas,
+		monospace;
+	--sans: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', 'Inter Variable', Inter,
+		-apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
+	--display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', 'Inter Variable', Inter,
+		system-ui, sans-serif;
+
+	/* shadcn-svelte semantic vars mapped onto the palette */
+	--background: var(--bg);
+	--foreground: var(--text);
+	--card-foreground: var(--text);
+	--popover: var(--surface); /* dropdowns/menus stay OPAQUE (no bleed-through) */
+	--popover-foreground: var(--text);
+	--primary: var(--accent);
+	--primary-foreground: #ffffff;
+	--secondary: var(--surface-2);
+	--secondary-foreground: var(--text);
+	--muted: var(--surface-2);
+	--muted-foreground: var(--text-muted);
+	--accent-foreground: var(--text); /* shadcn 'accent' = neutral hover, not the brand */
+	--destructive: var(--neg);
+	--destructive-foreground: #ffffff;
+	--border-color: var(--border);
+	--input: var(--border);
+	--ring: var(--accent-ink); /* focus ring uses AA-safe gold (5:1 light / 9:1 dark) */
+	--accent-hover: var(--control-hover);
+}
+
+/* ---- Tokens: dark (explicit) — Fluent 2 dark, warmed toward Nocturne ---- */
+:root:is([data-theme='dark'], [data-theme='black']) {
+	--mica-a: #1c1c1c;
+	--mica-b: #171717;
+	--glow-a: rgba(0, 0, 0, 0);
+	--glow-b: rgba(0, 0, 0, 0);
+
+	--bg: #171717;
+	--base: #0f0f0f;
+	--surface: #1f1f1f;
+	--surface-2: #262626;
+	--surface-3: #2c2c2c;
+	--card: rgba(255, 255, 255, 0.045); /* faint white veil over the mica ground */
+	--card-2: rgba(255, 255, 255, 0.028);
+
+	--border: rgba(255, 255, 255, 0.08);
+	--border-strong: rgba(255, 255, 255, 0.13);
+	--divider: rgba(255, 255, 255, 0.06);
+	--control: rgba(255, 255, 255, 0.055);
+	--control-hover: rgba(255, 255, 255, 0.08);
+
+	--text: #f0f0f0;
+	--text-muted: #adadad;
+	--text-faint: #7a7a7a;
+
+	--accent: #f0f0f0;
+	--accent-2: #dcdcdc;
+	--accent-ink: #f0f0f0;
+	--accent-weak: rgba(255, 255, 255, 0.08);
+	--mark: #c9a24b;
+	--chart-area: rgba(255, 255, 255, 0.05);
+
+	--pos: #78b483;
+	--pos-weak: rgba(120, 180, 131, 0.16);
+	--neg: #e28d8d; /* 4.5:1 on a selected row in a card */
+	--neg-weak: rgba(226, 141, 141, 0.16);
+	--warn: #faa06b; /* Fluent's orange tint30 = colorStatusWarningForeground1 in Dark */
+	--warn-weak: rgba(250, 160, 107, 0.16);
+
+	/* Categorical chart palette — dark steps (validated with the dataviz script). */
+	--cat-1: #0093ac;
+	--cat-2: #a298fe;
+	--cat-3: #e76190;
+	--cat-4: #a77ad8;
+	--cat-5: #d95926;
+	--cat-6: #42a2e3;
+	--cat-7: #c1429c;
+	--cat-8: #2f7edb;
+	--cat-9: #b77440;
+	--cat-10: #6e7acc;
+	--cat-other: #898781;
+
+	--elevation-card: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	--shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-pop: 0 14px 40px rgba(0, 0, 0, 0.7);
+	--elevation-dialog: 0 0 8px rgba(0, 0, 0, 0.4), 0 14px 28px rgba(0, 0, 0, 0.5);
+	--smoke: rgba(0, 0, 0, 0.5);
+
+	--primary-foreground: #141414;
+	--destructive-foreground: #2a0b0b;
+}
+
+/* ---- Tokens: dark (system — no explicit data-theme) — mirrors the block above ---- */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) {
+		--mica-a: #1c1c1c;
+		--mica-b: #171717;
+		--glow-a: rgba(0, 0, 0, 0);
+		--glow-b: rgba(0, 0, 0, 0);
+
+		--bg: #171717;
+		--base: #0f0f0f;
+		--surface: #1f1f1f;
+		--surface-2: #262626;
+		--surface-3: #2c2c2c;
+		--card: rgba(255, 255, 255, 0.045);
+		--card-2: rgba(255, 255, 255, 0.028);
+
+		--border: rgba(255, 255, 255, 0.08);
+		--border-strong: rgba(255, 255, 255, 0.13);
+		--divider: rgba(255, 255, 255, 0.06);
+		--control: rgba(255, 255, 255, 0.055);
+		--control-hover: rgba(255, 255, 255, 0.08);
+
+		--text: #f0f0f0;
+		--text-muted: #adadad;
+		--text-faint: #7a7a7a;
+
+		--accent: #f0f0f0;
+		--accent-2: #dcdcdc;
+		--accent-ink: #f0f0f0;
+		--accent-weak: rgba(255, 255, 255, 0.08);
+		--mark: #c9a24b;
+		--chart-area: rgba(255, 255, 255, 0.05);
+
+		--pos: #78b483;
+		--pos-weak: rgba(120, 180, 131, 0.16);
+		--neg: #e28d8d; /* 4.5:1 on a selected row in a card */
+		--neg-weak: rgba(226, 141, 141, 0.16);
+		--warn: #faa06b; /* Fluent's orange tint30 = colorStatusWarningForeground1 in Dark */
+		--warn-weak: rgba(250, 160, 107, 0.16);
+
+		/* Categorical chart palette — dark steps (validated with the dataviz script). */
+		--cat-1: #0093ac;
+		--cat-2: #a298fe;
+		--cat-3: #e76190;
+		--cat-4: #a77ad8;
+		--cat-5: #d95926;
+		--cat-6: #42a2e3;
+		--cat-7: #c1429c;
+		--cat-8: #2f7edb;
+		--cat-9: #b77440;
+		--cat-10: #6e7acc;
+		--cat-other: #898781;
+
+		--elevation-card: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+		--shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+		--shadow-pop: 0 14px 40px rgba(0, 0, 0, 0.7);
+		--elevation-dialog: 0 0 8px rgba(0, 0, 0, 0.4), 0 14px 28px rgba(0, 0, 0, 0.5);
+		--smoke: rgba(0, 0, 0, 0.5);
+
+		--primary-foreground: #141414;
+		--destructive-foreground: #2a0b0b;
+	}
+}
+
+/* ---- Tokens: Black: Dark with a true-black ground for OLED
+   screens, its own choice beside Light, Dark and System. Shadows don't read on black, so surfaces
+   step up in small shades and borders carry the edges (Spark's True black, Bitwarden's Black). ---- */
+:root[data-theme='black'] {
+	--mica-a: #000000;
+	--mica-b: #000000;
+	--bg: #000000;
+	--base: #000000;
+	--surface: #0e0e0e;
+	--surface-2: #161616;
+	--surface-3: #1e1e1e;
+	--card: rgba(255, 255, 255, 0.035);
+	--card-2: rgba(255, 255, 255, 0.022);
+
+	--border: rgba(255, 255, 255, 0.12);
+	--border-strong: rgba(255, 255, 255, 0.18);
+	--divider: rgba(255, 255, 255, 0.08);
+
+	--elevation-card: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+	--shadow: none;
+	--elevation-dialog: 0 0 0 1px rgba(255, 255, 255, 0.12);
+	--smoke: rgba(0, 0, 0, 0.7);
+}
+
+/* ---- Accent choices (SET1; <html data-accent>, stamped server-side like data-theme). Ink is the
+   default above. Each is solved in OKLCH for a white label at >=4.5:1 on the fill and text at
+   >=5.3:1 on the ground in both themes (`$lib/accent`). Teal
+   is `accentCss` of Fluent's #038387, checked by test/accent.test.ts. Lime is Radix's #bdee63 kept
+   bright (Coral read red): a white label fails on it, so it carries a
+   near-black one (13.7:1) as Wise's lime does; text and thin marks in Light use the solver's dark
+   lime #506e00 (5.4:1), since the bright fill is a 1.3:1 line on the Light ground; tested by
+   contrast. "windows" is written at run time from the person's Windows colour. ---- */
+:root[data-accent='gold'] { --accent: #966e00; --accent-2: #826000; --accent-ink: #826000; --accent-weak: #faefda; --primary-foreground: #ffffff; }
+:root[data-accent='gold']:is([data-theme='dark'], [data-theme='black']) { --accent-2: #bb8b00; --accent-ink: #bb8b00; --accent-weak: #372c15; }
+@media (prefers-color-scheme: dark) {
+	:root[data-accent='gold']:not([data-theme]) { --accent-2: #bb8b00; --accent-ink: #bb8b00; --accent-weak: #372c15; }
+}
+:root[data-accent='teal'] { --accent: #038387; --accent-2: #057175; --accent-ink: #057175; --accent-weak: #d6f8f9; --primary-foreground: #ffffff; }
+:root[data-accent='teal']:is([data-theme='dark'], [data-theme='black']) { --accent-2: #309a9e; --accent-ink: #309a9e; --accent-weak: #0a3536; }
+@media (prefers-color-scheme: dark) { :root[data-accent='teal']:not([data-theme]) { --accent-2: #309a9e; --accent-ink: #309a9e; --accent-weak: #0a3536; } }
+:root[data-accent='lime'] { --accent: #bdee63; --accent-2: #506e00; --accent-ink: #506e00; --accent-weak: #eaf5dc; --accent-mark: #506e00; --primary-foreground: #141414; }
+:root[data-accent='lime']:is([data-theme='dark'], [data-theme='black']) { --accent-2: #bdee63; --accent-ink: #bdee63; --accent-weak: #283218; --accent-mark: #bdee63; }
+@media (prefers-color-scheme: dark) { :root[data-accent='lime']:not([data-theme]) { --accent-2: #bdee63; --accent-ink: #bdee63; --accent-weak: #283218; --accent-mark: #bdee63; } }
+
+/* ---- Static design tokens → utilities (theme-independent) ----
+   Fluent (Windows) type ramp, strict: Caption 12/16 · Body 14/20 · Body Large
+   18/24 · Subtitle 20/28 · Title 28/36 — 12px is the floor; density comes from
+   row height, not smaller type (skill). Radius:
+   4 control · 8 overlay. Utilities: text-caption … text-title,
+   rounded-control / rounded-overlay. */
+@theme {
+	--text-caption: 12px;
+	--text-caption--line-height: 16px;
+	--text-body: 14px;
+	--text-body--line-height: 20px;
+	--text-body-lg: 18px;
+	--text-body-lg--line-height: 24px;
+	--text-subtitle: 20px;
+	--text-subtitle--line-height: 28px;
+	--text-title: 28px;
+	--text-title--line-height: 36px;
+	/* A page's one headline figure (28 read small beside Actual 30, Kite 42,
+	   Ghostfolio 56), at normal weight. */
+	--text-display: 36px;
+	--text-display--line-height: 44px;
+
+	--radius-control: 4px;
+	--radius-overlay: 8px;
+
+	/* Spacing (C7). Tailwind's numeric scale is 4px per step
+	   (p-1 = 4px, gap-3 = 12px); arbitrary px values are a lint error. The named gaps are
+	   Fluent's (Microsoft Learn, "Content layout and spacing"): */
+	--spacing-control: 8px; /* between buttons; a control and its header */
+	--spacing-content: 12px; /* between content areas; a label and the next group */
+	--spacing-surface: 16px; /* a surface's edge to its text */
+	--spacing-section: 24px; /* between page sections; the page margin */
+
+	/* Motion: WinUI's named durations and Fluent easing (Microsoft Learn, "Timing and
+	   easing"): ease-decelerate for anything entering, ease-accelerate for anything leaving. */
+	--ease-decelerate: cubic-bezier(0, 0, 0, 1);
+	--ease-accelerate: cubic-bezier(1, 0, 1, 1);
+	/* An element already on screen moving from one place to another (Windows' "point to point"). */
+	--ease-point: cubic-bezier(0.55, 0.55, 0, 1);
+	/* Colour changes (hover, press, focus; `transition-colors` and friends) take WinUI's brush
+	   transition, 83 ms linear (ControlFasterAnimationDuration), not Tailwind's 150 ms ease
+	   (visual checks M4). Anything that moves names its own motion-* and ease-*. */
+	--default-transition-duration: 83ms;
+	--default-transition-timing-function: linear;
+}
+
+/* Motion durations (ControlNormal/Fast/FasterAnimationDuration). The utilities set
+   --tw-duration, which both Tailwind transitions and tw-animate's enter/exit read. It must not
+   inherit: unregistered, it did, and every control inside the pane grid (motion-fast) or an open
+   dialog (motion-normal) took 167 or 250 ms for its hover colours (M4). */
+@property --tw-duration {
+	syntax: '*';
+	inherits: false;
+}
+:root {
+	--motion-normal: 250ms;
+	--motion-fast: 167ms;
+	--motion-faster: 83ms;
+}
+@utility motion-normal {
+	--tw-duration: var(--motion-normal);
+	transition-duration: var(--motion-normal);
+}
+@utility motion-fast {
+	--tw-duration: var(--motion-fast);
+	transition-duration: var(--motion-fast);
+}
+@utility motion-faster {
+	--tw-duration: var(--motion-faster);
+	transition-duration: var(--motion-faster);
+}
+/* Access-key letters: plain text until Alt is held, then underlined, as in a Windows
+   dialog. $lib/shortcuts sets <html data-alt> while Alt is down. */
+.ak {
+	text-decoration: none;
+}
+:root[data-alt] .ak {
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+/* An inline icon sitting on the text baseline (was align-[-1px] / align-[-2px]). */
+@utility align-icon {
+	vertical-align: -0.125em;
+}
+
+/* ---- Tailwind theme: expose tokens as utilities (bg-*, text-*, rounded-*, font-*) ---- */
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-card-2: var(--card-2);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent-hover);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	/* finance + brand tokens (not part of shadcn's set) */
+	--color-brand: var(--accent);
+	--color-brand-2: var(--accent-2);
+	--color-brand-ink: var(--accent-ink);
+	--color-brand-weak: var(--accent-weak);
+	--color-brand-mark: var(--accent-mark);
+	--color-pos: var(--pos);
+	--color-pos-weak: var(--pos-weak);
+	--color-neg: var(--neg);
+	--color-neg-weak: var(--neg-weak);
+	--color-warn: var(--warn);
+	--color-warn-weak: var(--warn-weak);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-surface-3: var(--surface-3);
+	--color-control: var(--control);
+	--color-control-hover: var(--control-hover);
+	--color-divider: var(--divider);
+	--color-border-strong: var(--border-strong);
+	--color-text: var(--text);
+	--color-text-muted: var(--text-muted);
+	--color-text-faint: var(--text-faint);
+
+	/* Named radii collapse onto the Fluent pair (safety net for vendored/future
+	   classes — app code uses rounded-control / rounded-overlay). */
+	--radius-xs: 4px;
+	--radius-sm: 4px;
+	--radius-md: 4px;
+	--radius-lg: 8px;
+	--radius-xl: 8px;
+	--radius-2xl: 8px;
+
+	--font-sans: var(--sans);
+	--font-display: var(--display);
+	--font-mono: var(--mono);
+}
+
+@layer base {
+	* {
+		border-color: var(--border);
+	}
+	html,
+	body {
+		height: 100%;
+	}
+	body {
+		/* Mica ground: a quiet tonal gradient + faint warm glow top-left/right, fixed so
+		   it doesn't scroll — the layered cards sit on it. Not OS vibrancy → identical in
+		   the hosted browser build and in Electron. */
+		background:
+			radial-gradient(900px 520px at 12% -8%, var(--glow-a), transparent 60%),
+			radial-gradient(700px 500px at 100% 0%, var(--glow-b), transparent 55%),
+			radial-gradient(760px 560px at 88% 72%, var(--glow-b), transparent 62%),
+			linear-gradient(160deg, var(--mica-a), var(--mica-b));
+		background-repeat: no-repeat;
+		background-color: var(--mica-b);
+		color: var(--text);
+		font-family: var(--sans);
+		font-size: 14px;
+		line-height: 1.45;
+		-webkit-font-smoothing: antialiased;
+	}
+	/* native controls (date picker, calendar) follow the theme */
+	:root {
+		color-scheme: light;
+	}
+	:root:is([data-theme='dark'], [data-theme='black']) {
+		color-scheme: dark;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme]) {
+			color-scheme: dark;
+		}
+	}
+	/* Fluent focus visual (FL-03): keyboard focus only, on every non-text control —
+	   2px outer stroke in the text colour + 1px inner stroke in the surface colour,
+	   so it reads on any fill incl. gold (the old gold ring was invisible on the
+	   gold Add button). Text fields are excluded: their focus is the Field's accent
+	   underline. Rows and other inset targets add outline-offset:-2px. */
+	:where(
+			a,
+			button,
+			summary,
+			[tabindex]:not([tabindex='-1']),
+			[role='button'],
+			[role='tab'],
+			[role='checkbox'],
+			[role='switch'],
+			[role='radio'],
+			input[type='checkbox'],
+			input[type='radio']
+		):focus-visible {
+		outline: 2px solid var(--focus-outer);
+		outline-offset: 0;
+		box-shadow: inset 0 0 0 1px var(--focus-inner);
+	}
+	/* F6 to a pane (sidebar, top bar, content): show where focus went (hunt H-f6-A).
+	   Keyboard only. */
+	#app-content:focus-visible,
+	#app-sidebar:focus-visible,
+	#app-topbar:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--focus-outer);
+	}
+	/* Chromium never paints an outline on a <tr>, so a focused row draws the same
+	   2px stroke on its cells (top/bottom on every cell, sides on the end cells). */
+	tr:focus-visible {
+		outline: none;
+		box-shadow: none;
+	}
+	tr:focus-visible > td {
+		box-shadow:
+			inset 0 2px 0 var(--focus-outer),
+			inset 0 -2px 0 var(--focus-outer);
+	}
+	tr:focus-visible > td:first-child {
+		box-shadow:
+			inset 2px 0 0 var(--focus-outer),
+			inset 0 2px 0 var(--focus-outer),
+			inset 0 -2px 0 var(--focus-outer);
+	}
+	tr:focus-visible > td:last-child {
+		box-shadow:
+			inset -2px 0 0 var(--focus-outer),
+			inset 0 2px 0 var(--focus-outer),
+			inset 0 -2px 0 var(--focus-outer);
+	}
+	/* Fluent emphasis is Semibold, never Bold — <b>/<strong> default to "bolder" (700). */
+	b,
+	strong {
+		font-weight: 600;
+	}
+	/* tabular lining figures wherever money appears — decimals align for scanning */
+	.num,
+	.amt {
+		font-variant-numeric: tabular-nums lining-nums;
+		font-feature-settings: 'tnum', 'lnum';
+		white-space: nowrap; /* an amount never splits across lines (DL-12) */
+	}
+	.pos {
+		color: var(--pos);
+	}
+	.neg {
+		color: var(--neg);
+	}
+	.muted {
+		color: var(--text-muted);
+	}
+	.faint {
+		color: var(--text-faint);
+	}
+
+	/* No custom scrollbars: the platform draws them. The desktop shell turns on
+	   Chromium's Windows 11 overlay bars (main.cjs); they follow color-scheme and the user's
+	   "Always show scrollbars" setting. */
+}
+
+/* ---- Title bar — Electron desktop ONLY (Window-Controls-Overlay) ----
+   Gated on the `.wco` class, which app.html's head sets and +layout keeps current from navigator.windowControlsOverlay
+   (reliable in Electron; the `display-mode: window-controls-overlay` media query is NOT).
+   The OS draws the native caption buttons (min/□/✕) in the top-right; the TopBar + the
+   sidebar brand strip become the draggable title bar, and the TopBar reserves the button
+   rect on its right (env(titlebar-area-*), 150px fallback) so its own controls never slide
+   under the native buttons. Every interactive element stays clickable (no-drag). Absent in
+   the hosted/browser build → no class → edge-to-edge, unaffected. */
+:root.wco .app-titlebar {
+	-webkit-app-region: drag;
+}
+/* The OS buttons' rect, kept free INSIDE the bar's right column (chrome B) so the outer columns
+   stay equal and the search sits at the window's centre.
+   In a browser it is empty, so the bar's gap alone keeps the avatar off the window's edge,
+   about as far in as the mark sits on the left. */
+.wco-reserve {
+	display: block;
+	flex: none;
+	width: 0;
+}
+:root.wco .wco-reserve {
+	align-self: stretch;
+	width: max(138px, calc(100vw - env(titlebar-area-width, 100vw) - env(titlebar-area-x, 0px)));
+}
+:root.wco .app-drag {
+	-webkit-app-region: drag;
+}
+/* Inactive window: the title-strip text and icons dim, as Windows dims a caption
+   (WindowCaptionForegroundDisabled). Main reports activation; see +layout. */
+:root.wco.inactive .app-titlebar > *,
+:root.wco.inactive .app-drag > * {
+	opacity: 0.5;
+	transition: opacity 0.083s linear;
+}
+/* The signed-in shell is exactly one screen tall; only its panes scroll. Lock the root so an
+   element that escapes a pane can never make the document scroll under it. Signed-out
+   screens keep normal page scrolling. */
+html:has(#app-content),
+html:has(#app-content) body {
+	height: 100%;
+	overflow: hidden;
+}
+
+/* WinUI-style overlay scrollbar for the two app panes (lib/fluent-scroll.ts). A 2px
+   indicator while the pointer moves over the pane or it scrolls; a 6px thumb on a track with
+   arrows when the pointer is at the right edge; fades out 4s after the last movement. */
+.fluent-scroll {
+	scrollbar-width: none;
+}
+.fluent-scrollbar {
+	position: absolute;
+	z-index: 5;
+	width: 16px;
+	display: flex;
+	flex-direction: column;
+	padding: 2px 0;
+	border-radius: 8px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--motion-fast) linear, background-color var(--motion-faster) linear;
+}
+.fluent-scrollbar[data-state='indicator'] {
+	opacity: 1;
+}
+/* Hidden at once on a layout change: no fade-out left at the old position. */
+.fluent-scrollbar[data-instant] {
+	transition: none;
+}
+.fluent-scrollbar[data-state='expanded'] {
+	opacity: 1;
+	pointer-events: auto;
+	background: color-mix(in srgb, var(--surface) 88%, transparent);
+	box-shadow: inset 1px 0 0 var(--divider);
+}
+.fluent-scrollbar .fs-track {
+	position: relative;
+	flex: 1;
+}
+.fluent-scrollbar .fs-thumb {
+	position: absolute;
+	top: 0;
+	right: 4px;
+	width: 2px;
+	border-radius: 999px;
+	background: var(--text-muted);
+	opacity: 0.75;
+	transition: width var(--motion-fast) var(--ease-decelerate), right var(--motion-fast) var(--ease-decelerate), opacity var(--motion-faster) linear;
+}
+.fluent-scrollbar[data-state='expanded'] .fs-thumb {
+	right: 5px;
+	width: 6px;
+	opacity: 1;
+}
+.fluent-scrollbar[data-state='expanded'] .fs-thumb:hover,
+.fluent-scrollbar .fs-thumb[data-dragging] {
+	background: var(--text);
+}
+.fluent-scrollbar .fs-arrow {
+	height: 0;
+	overflow: hidden;
+	transition: height var(--motion-fast) var(--ease-decelerate);
+}
+.fluent-scrollbar[data-state='expanded'] .fs-arrow {
+	height: 14px;
+}
+.fluent-scrollbar .fs-arrow::before {
+	content: '';
+	display: block;
+	width: 8px;
+	height: 5px;
+	margin: 4px auto 0;
+	background: var(--text-muted);
+	clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.fluent-scrollbar .fs-down::before {
+	clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.fluent-scrollbar .fs-arrow:hover::before {
+	background: var(--text);
+}
+/* The slow-page line (+layout): 2 px, the accent, an indeterminate sweep like Fluent's ProgressBar.
+   Under reduced motion the global rule stops the sweep where it ends. */
+.nav-progress {
+	position: absolute;
+	inset: 0 0 auto 0;
+	z-index: 6;
+	height: 2px;
+	overflow: hidden;
+}
+.nav-progress::before {
+	content: '';
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 40%;
+	background: var(--accent-mark);
+	animation: nav-progress 1.2s linear infinite;
+}
+@keyframes nav-progress {
+	from {
+		translate: -100% 0;
+	}
+	to {
+		translate: 250% 0;
+	}
+}
+/* A theme or accent switch lands at once, as Windows' does: without this, ~120 controls faded
+   their colours over the old surfaces for a frame or ten (theme.ts sets the class for two frames;
+   visual checks M5). */
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+	transition: none !important;
+}
+/* Reduced motion, everywhere: movement becomes an instant change. A near-zero duration
+   rather than `none`, so animationend/transitionend still fire for Bits' presence handling. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 1ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.fluent-scrollbar,
+	.fluent-scrollbar .fs-thumb,
+	.fluent-scrollbar .fs-arrow {
+		transition: none;
+	}
+}
+
+/* Signed-out screens: a route-independent strip across the title-bar area. It holds
+   no controls; anything a page places under it stays clickable via the no-drag rule. */
+.app-drag-strip {
+	display: none;
+}
+:root.wco .app-drag-strip {
+	display: block;
+	position: fixed;
+	inset: 0 0 auto 0;
+	height: env(titlebar-area-height, 32px);
+	z-index: 40;
+	-webkit-app-region: drag;
+}
+:root.wco .app-titlebar :where(button, a, input, select, [role='button'], [tabindex]),
+:root.wco .app-drag :where(button, a, input, [role='button']) {
+	-webkit-app-region: no-drag;
+}
+
+/* LayerChart axis labels default to weight 300 (unlayered :where() styles), so this
+   override sits outside @layer to win: Fluent weights are 400/600 only (DL-03). */
+.lc-axis-label,
+.lc-axis-tick-label {
+	font-weight: 400;
+}
+
+/* ── Table / list: the ONE table style (miserly-desktop-shell "Table / list"; DL-10
+   FL-05 DL-13). Add `data-table` to a <table>; `dense` for the register.
+   Rows 40px (dense 32px) · Body 14 cells · 12px horizontal padding · sentence-case
+   12/600 muted headers · divider gridlines, no vertical rules · numbers right-aligned
+   and tabular (`td.num`/`th.num`) · dates nowrap (`td.date`) · selection (`data-selected`) is
+   the accent's weak tint, neutral grey under Ink · `.row-actions` show on
+   row hover AND focus-within. Fixed layout so flexible text columns take the rest. */
+@layer components {
+	/* A sidebar row's name and figure ("drag hides values that could fit"): one
+	   line high, the figure wraps to a hidden second line only on a row where it would cut the name;
+	   a name longer than the row truncates on its own. No measuring, so nothing shifts on resize. */
+	.fit-row {
+		display: flex;
+		flex: 1 1 0%;
+		flex-wrap: wrap;
+		align-items: center;
+		align-content: flex-start;
+		column-gap: 12px;
+		min-width: 0;
+		height: 20px;
+		overflow: hidden;
+	}
+	.fit-row > :first-child {
+		flex: 1 1 auto;
+		min-width: 0;
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.fit-row > :last-child {
+		white-space: nowrap;
+	}
+	/* Every sidebar figure or none (set by Sidebar's figuresAllOrNone). */
+	/* They fade over 83 ms as the drag crosses the line (they all popped). */
+	#app-sidebar .fit-row > :last-child {
+		transition:
+			opacity var(--motion-faster) linear,
+			visibility var(--motion-faster);
+	}
+	#app-sidebar[data-figures='off'] .fit-row > :last-child {
+		visibility: hidden;
+		opacity: 0;
+	}
+	.data-table {
+		width: 100%;
+		table-layout: fixed;
+		border-collapse: collapse;
+		font-size: 14px;
+		line-height: 20px;
+	}
+	.data-table.auto {
+		table-layout: auto;
+	}
+	.data-table > thead > tr > th {
+		height: 32px;
+		padding: 0 12px;
+		font-size: 12px;
+		line-height: 16px;
+		font-weight: 600;
+		color: var(--text-muted);
+		text-align: left;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		border-bottom: 1px solid var(--divider);
+	}
+	.data-table > tbody > tr > td {
+		height: 40px;
+		padding: 4px 12px;
+		vertical-align: middle;
+		border-bottom: 1px solid var(--divider);
+	}
+	.data-table.dense > tbody > tr > td {
+		height: 32px;
+		padding-top: 2px;
+		padding-bottom: 2px;
+	}
+	/* A row that folds open and shut (the New payee row; $lib/motion foldIn / foldOut): the cells
+	   lose their height and padding, each one's content (.fold-cell) holds the 39 px and folds. */
+	.data-table > tbody > tr.fold-row > td {
+		height: auto;
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+	.fold-cell {
+		display: flex;
+		align-items: center;
+		height: 39px;
+	}
+	.fold-cell > * {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	td.num > .fold-cell {
+		justify-content: flex-end;
+	}
+	/* An in-cell editor never grows a dense row: the cell drops its 2 px padding and the
+	   field is 28 px, so opening an editor or pressing Esc doesn't move the rows below. */
+	.data-table.dense > tbody > tr[data-txrow] > td:has(input:not([type='checkbox']), [data-slot='select-trigger']) {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+	.data-table.dense > tbody > tr[data-txrow] > td :is([data-slot='date-field'], [data-slot='select-trigger'], input:not([type='checkbox'])) {
+		/* !important: the fields' own h-8 sits in the utilities layer, which outranks this one. */
+		height: 28px !important;
+		vertical-align: middle;
+	}
+	.data-table.dense > tbody > tr[data-txrow] > td [data-slot='date-field'] input {
+		height: 100% !important;
+	}
+	.data-table > tbody > tr:last-child > td {
+		border-bottom: 0;
+	}
+	.data-table > tbody > tr:hover > td {
+		background: color-mix(in srgb, var(--control-hover) 60%, transparent);
+	}
+	/* Selected rows drop their separator, so a run of them reads as one block, as a multi-selection
+	   does in Outlook and Windows' lists. At 150 % scaling the 1 px line between two tinted rows was
+	   snapped cell by cell and showed under some columns only (Black / Lime, exe). */
+	.data-table > tbody > tr[data-selected] > td {
+		background: var(--control-hover);
+		border-bottom-color: transparent;
+	}
+	/* With an accent chosen, a selected row is tinted with it, as Actual, Outlook and Teams do
+	   Ink (no data-accent) keeps the grey. Money reads >= 4.5:1 on every tint
+	   (test/accent.test.ts). */
+	:root[data-accent] .data-table > tbody > tr[data-selected] > td {
+		background: var(--accent-weak);
+	}
+	/* `use:rowLink`: a row with a link opens on a click anywhere. */
+	.data-table[data-rowlink] > tbody > tr:has(a[href]) {
+		cursor: pointer;
+	}
+	/* A table whose rows don't open (To categorize: the row's job is its picker) shows no
+	   hover tint, which would promise a click target. */
+	.data-table.no-hover > tbody > tr:hover > td {
+		background: none;
+	}
+	/* The row a link landed on (`?tx=`): a tint that fades over 2 s. */
+	.data-table > tbody > tr[data-landed] > td {
+		animation: row-landed 2s var(--ease-decelerate, ease-out);
+	}
+	@keyframes row-landed {
+		from {
+			background: var(--brand-weak);
+		}
+	}
+	.data-table th.num,
+	.data-table td.num {
+		text-align: right;
+	}
+	.data-table td.date {
+		white-space: nowrap;
+	}
+	.data-table td.truncate {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.data-table th.check,
+	.data-table td.check {
+		width: 40px;
+		padding-left: 12px;
+		padding-right: 0;
+	}
+	.data-table .row-actions {
+		opacity: 0;
+		pointer-events: none;
+	}
+	.data-table > tbody > tr:hover .row-actions,
+	.data-table > tbody > tr:focus-within .row-actions {
+		opacity: 1;
+		pointer-events: auto;
+	}
+	/* a sub-heading row (a section, a payee group): text, no fill (Outlook's "Today", skill
+	   "Group headers are text"; AUDIT-S4 F7, F12) */
+	.data-table > tbody > tr.group-row > td {
+		height: 32px;
+		padding-top: 8px;
+		padding-bottom: 0;
+		font-size: 12px;
+		line-height: 16px;
+		font-weight: 600;
+		color: var(--text-muted);
+		background: transparent;
+	}
+	.data-table > tbody > tr.group-row:hover > td {
+		background: transparent;
+	}
+	/* `sticky-first`: a wide table keeps its first column while the rest scrolls under it,
+	   as Excel's frozen column and Fluent's DataGrid do. The held cells are opaque (the page, with the
+	   row's tint on top); the edge line shows once the table has scrolled (`data-scrolled`, set by
+	   the page). A group heading's text holds the same way. */
+	.data-table.sticky-first > :is(thead, tbody) > tr > :first-child {
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		background: var(--bg);
+	}
+	.data-table.sticky-first > tbody > tr:hover > td:first-child {
+		background: linear-gradient(color-mix(in srgb, var(--control-hover) 60%, transparent), color-mix(in srgb, var(--control-hover) 60%, transparent)), var(--bg);
+	}
+	.data-table.sticky-first > tbody > tr[data-selected] > td:first-child {
+		background: linear-gradient(var(--control-hover), var(--control-hover)), var(--bg);
+	}
+	:root[data-accent] .data-table.sticky-first > tbody > tr[data-selected] > td:first-child {
+		background: linear-gradient(var(--accent-weak), var(--accent-weak)), var(--bg);
+	}
+	.data-table.sticky-first[data-scrolled] > :is(thead, tbody) > tr:not(.group-row) > :first-child {
+		box-shadow: 1px 0 0 var(--divider);
+	}
+	.data-table.sticky-first > tbody > tr.group-row > td {
+		position: static;
+	}
+	.data-table.sticky-first > tbody > tr.group-row > td > .held {
+		position: sticky;
+		left: 12px;
+		display: inline-block;
+	}
+}
+
+/* NavigationView pane (DL-15). <html data-pane> = expanded | rail | overlay, set
+   before first paint by app.html and kept by Sidebar.svelte. Rail and overlay both keep a
+   48px grid column; the overlay floats the full pane over the content. Without the
+   attribute (no JS) the old rule applies: a rail below 1100px. */
+/* The column's width lives on the grid alone and doesn't inherit (M9): set on :root, every pane
+   change restyled the whole document (a 2,452-row register: 150 to 417 ms frames at 4x CPU). */
+@property --sidebar-w {
+	syntax: '*';
+	inherits: false;
+}
+.pane-grid {
+	--sidebar-w: var(--sidebar-open);
+}
+:root[data-pane='rail'] .pane-grid,
+:root[data-pane='overlay'] .pane-grid,
+:root[data-pane-w='rail'] .pane-grid {
+	--sidebar-w: 48px;
+}
+/* A Fluent pane slide: on collapse `data-pane-w` narrows the column first (the grid glides
+   167 ms and the pane, clipped, slides with it, labels cut off by its edge), and the rail layout
+   (`data-pane=rail`) applies when the slide ends; on expand both change at once and the widening
+   edge reveals the labels. Icons sit in one column (x 16) in both states, so nothing jumps sideways.
+   No glide while the edge is dragged. */
+:root[data-resizing] .pane-grid {
+	transition: none;
+}
+@media (max-width: 1099px) {
+	:root:not([data-pane]) .pane-grid {
+		--sidebar-w: 48px;
+	}
+}
+/* Option A: the pane's text fades and its icons glide. Going narrow (a collapse,
+   `data-pane-w`; the overlay closing, `data-pane-closing`; the rail itself) its text fades out in
+   83 ms at the slide's start, so the moving edge never chops a visible label; opening, it fades in
+   over 167 ms once the width is mostly open (83 ms in). The parts the rail drops (`.pane-fold`: the
+   net worth block, the Accounts header, an open group's rows) shrink over the slide's 167 ms, so the
+   icons below move with it instead of jumping when the rail layout lands. On --ease-point, not the
+   slide's curves: the overlay's leaving curve put 128 of 155 px in the close's last frame (exe film).
+   Icons never fade. The rail's own parts (`.pane-rail-only`: its Add account row and inbox badge)
+   fade in once it has landed and out as it opens. */
+.pane-text {
+	transition: opacity var(--motion-fast) linear var(--motion-faster);
+}
+:root:is([data-pane='rail'], [data-pane-w='rail'], [data-pane-closing]) .pane-text {
+	opacity: 0;
+	transition: opacity var(--motion-faster) linear;
+}
+.pane-fold {
+	display: grid;
+	grid-template-rows: 1fr;
+	transition: grid-template-rows var(--motion-fast) var(--ease-point);
+}
+/* clip, not hidden: a focus ring 2 px outside a row still shows. */
+.pane-fold > * {
+	min-height: 0;
+	overflow: clip;
+	overflow-clip-margin: 2px;
+}
+:root:is([data-pane='rail'], [data-pane-w='rail'], [data-pane-closing]) .pane-fold {
+	grid-template-rows: 0fr;
+}
+.pane-rail-only {
+	opacity: 0;
+	transition:
+		opacity var(--motion-faster) linear,
+		display var(--motion-faster) allow-discrete,
+		color var(--motion-faster) linear,
+		background-color var(--motion-faster) linear;
+}
+:root[data-pane='rail'] .pane-rail-only {
+	opacity: 1;
+}
+/* The Add account row is display:none outside the rail: it fades in from the first frame it shows. */
+@starting-style {
+	:root[data-pane='rail'] .pane-rail-only {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.pane-text,
+	.pane-fold,
+	.pane-rail-only {
+		transition: none !important;
+	}
+}
+/* Option D: the pane runs
+   the window's full height, over the title bar, in the docked sidebar's colour (its inline --base),
+   so it is the same thing in every mode; its own mark and menu button sit where the title bar's are
+   (Sidebar's pane head). A hairline edge and the flyout shadow lift it; the page isn't dimmed; it
+   slides out from the rail as the expanded pane does. */
+:root[data-pane='overlay'] #app-sidebar {
+	position: fixed;
+	inset: 0 auto 0 0;
+	width: var(--sidebar-open) !important;
+	z-index: 50;
+	border-right: 1px solid var(--border);
+	box-shadow: var(--shadow-pop);
+	animation: pane-overlay-in var(--motion-fast) var(--ease-decelerate);
+}
+@keyframes pane-overlay-in {
+	from {
+		clip-path: inset(-64px calc(100% - 48px) -64px 0);
+	}
+	to {
+		clip-path: inset(-64px -64px -64px 0);
+	}
+}
+/* It leaves as it came (Sidebar's slideOverlayShut), on the docked collapse's curve.
+   On the leaving curve its edge held still most of the 167 ms and then snapped shut, an
+   empty pane lingering once its text had faded. */
+:root[data-pane='overlay'][data-pane-closing] #app-sidebar {
+	animation: pane-overlay-out var(--motion-fast) var(--ease-decelerate) forwards;
+}
+@keyframes pane-overlay-out {
+	from {
+		clip-path: inset(-64px -64px -64px 0);
+	}
+	to {
+		clip-path: inset(-64px calc(100% - 48px) -64px 0);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	:root[data-pane='overlay'] #app-sidebar {
+		animation: none;
+	}
+}

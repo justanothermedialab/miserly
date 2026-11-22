@@ -1,0 +1,3 @@
+# A personal finance app: nothing here is for search engines.
+User-agent: *
+Disallow: /

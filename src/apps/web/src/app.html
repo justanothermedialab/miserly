@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="text-scale" content="scale" />
+		<!-- Installed/PWA desktop mode may extend content into the title bar (Window
+		     Controls Overlay). Inert in a normal browser tab. -->
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<script>
+			// Navigation pane mode before first paint; Sidebar.svelte keeps it current.
+			try {
+				var collapsed = localStorage.getItem('miserly:pane') === 'collapsed';
+				var narrow = matchMedia('(max-width: 1099px)').matches;
+				document.documentElement.dataset.pane = collapsed || narrow ? 'rail' : 'expanded';
+				// The pane's remembered width (240 to a third of the window; Sidebar.svelte).
+				var w = parseInt(localStorage.getItem('miserly:pane-w') || '', 10);
+				if (w) document.documentElement.style.setProperty('--sidebar-open', Math.max(240, Math.min(w, Math.floor(innerWidth / 3))) + 'px');
+			} catch (e) {}
+			// The desktop window's caption buttons (Window Controls Overlay): reserve their space before
+			// first paint, or every full load draws Add under them until hydration. A browser tab
+			// reports the overlay as not visible. +layout.svelte keeps the class current after that.
+			try {
+				var wco = navigator.windowControlsOverlay;
+				if (wco && wco.visible !== false) document.documentElement.classList.add('wco');
+			} catch (e) {}
+			// "Today" is the viewer's calendar day, not the server's (a hosted server runs
+			// on UTC). The server reads this cookie on every request (lib/server/clock.ts).
+			try {
+				var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+				if (tz) document.cookie = 'miserly_tz=' + encodeURIComponent(tz) + '; path=/; max-age=31536000; samesite=lax';
+			} catch (e) {}
+		</script>
+		<script>
+			// The launch cover: on the first page of a desktop window (the shell's bridge is
+			// there before this runs), draw what the shell's splash page shows, so the hand-over from it
+			// is invisible; +layout.svelte fades it once the page has drawn. Not in a browser, not on a
+			// reload (sessionStorage lives as long as the window).
+			try {
+				if (window.miserlyDesktop && !sessionStorage.getItem('miserly:booted')) document.documentElement.dataset.boot = '';
+			} catch (e) {}
+		</script>
+		<style>
+			html[data-boot] { --boot-bg: #f5f5f5; --boot-text: #5c5c5c; --boot-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.06 22.94 12 12 22.94 1.06 12Z' fill='none' stroke='%23a9822f' stroke-width='1.5'/%3E%3C/svg%3E"); }
+			html[data-boot][data-theme='dark'] { --boot-bg: #171717; --boot-text: #adadad; --boot-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.06 22.94 12 12 22.94 1.06 12Z' fill='none' stroke='%23c9a24b' stroke-width='1.5'/%3E%3C/svg%3E"); }
+			html[data-boot][data-theme='black'] { --boot-bg: #000000; --boot-text: #adadad; --boot-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.06 22.94 12 12 22.94 1.06 12Z' fill='none' stroke='%23c9a24b' stroke-width='1.5'/%3E%3C/svg%3E"); }
+			@media (prefers-color-scheme: dark) {
+				html[data-boot]:not([data-theme]) { --boot-bg: #171717; --boot-text: #adadad; --boot-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.06 22.94 12 12 22.94 1.06 12Z' fill='none' stroke='%23c9a24b' stroke-width='1.5'/%3E%3C/svg%3E"); }
+			}
+			html[data-boot]::before,
+			html[data-boot]::after {
+				position: fixed;
+				z-index: 2147483647;
+				transition: opacity 150ms ease-out;
+				animation: boot-gone 0s linear 10s forwards; /* a page that never mounts still loses it */
+			}
+			html[data-boot]::before {
+				content: '';
+				inset: 0;
+				background: var(--boot-bg) var(--boot-mark) no-repeat center calc(50% - 17px) / 44px 44px;
+			}
+			html[data-boot]::after {
+				content: 'Miserly';
+				left: 0;
+				right: 0;
+				top: calc(50% + 19px);
+				text-align: center;
+				font: 600 15px/20px 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', 'Inter Variable', sans-serif; /* the app's face */
+				letter-spacing: -0.01em;
+				color: var(--boot-text);
+			}
+			html[data-boot='out']::before,
+			html[data-boot='out']::after {
+				opacity: 0;
+			}
+			@keyframes boot-gone {
+				to { opacity: 0; visibility: hidden; }
+			}
+		</style>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

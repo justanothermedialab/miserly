@@ -1,0 +1,100 @@
+name: Release
+
+# Cut a release by pushing a version tag, e.g.:
+#   git tag v26.11.0 && git push origin v26.11.0
+# This builds + publishes the two deploy artifacts for that tag:
+#   • the Docker image → GHCR (ghcr.io/<owner>/<repo>), tagged :<version> and :latest
+#   • the Windows portable zip (no installer) → the GitHub Release
+# It does NOT run on normal pushes — only on v* tags.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # create the GitHub Release + upload assets
+  packages: write # push the image to GHCR
+
+jobs:
+  # ── The self-host Docker image → GHCR ──────────────────────────────────────
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata (tags/labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      # arm64 (Apple Silicon Macs, Raspberry Pi 4 and 5, ARM NAS boxes) is built under QEMU.
+      # better-sqlite3 and @node-rs/argon2 both ship linux-arm64 binaries for Node 24, so
+      # nothing compiles under emulation unless a download fails.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: src
+          file: src/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── The Windows portable zip → the Release ─────────────────────────────────
+  desktop-zip:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the guide builder's one dependency
+        run: python -m pip install markdown
+      - run: corepack enable
+      - name: Install (whole workspace; desktop needs Electron and electron-builder)
+        run: pnpm install --frozen-lockfile
+      - name: Build the portable zip (prepare-server, electron-builder --dir, then the zip)
+        run: pnpm --filter @miserly/desktop portable
+      # The Release's notes are this version's entry in CHANGELOG.md (a tag such as v26.11.0-rc.1
+      # reads 26.11.0's entry); a tag with a suffix is a pre-release, never "Latest".
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        working-directory: .
+        run: |
+          v="${GITHUB_REF_NAME#v}"; base="${v%%-*}"
+          awk -v head="## $base " 'index($0, head) == 1 { f = 1; next } /^## / { if (f) exit } f' CHANGELOG.md > release-notes.md || true
+          [ -s release-notes.md ] || echo "Miserly $v" > release-notes.md
+      - name: Attach the zip to the Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: 'src/apps/desktop/dist/Miserly-preview-*-portable.zip'
+          fail_on_unmatched_files: true
+          body_path: release-notes.md
+          prerelease: ${{ contains(github.ref_name, '-') }}

@@ -1,0 +1,27 @@
+{
+  "name": "@miserly/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "temporal-polyfill": "^1.0.1"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.4",
+    "fast-check": "^3.23.2"
+  }
+}

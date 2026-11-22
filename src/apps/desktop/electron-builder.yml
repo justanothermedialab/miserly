@@ -1,0 +1,74 @@
+# electron-builder — UNSIGNED builds (signing and auto-update come later). A release ships
+# the portable zip: `pnpm portable` runs electron-builder --dir, then scripts/portable-zip.mjs.
+appId: com.miserly.desktop
+productName: Miserly
+
+directories:
+  output: dist
+  buildResources: build-resources
+
+# App code that goes INTO the asar. The server tree ships as extraResources
+# (below) instead — outside the asar — so better-sqlite3's native .node loads
+# without any asarUnpack juggling.
+# ⚠ This is an ALLOWLIST: because it contains positive patterns, electron-builder
+# drops the default `**/*`, so EVERY file main.cjs needs at runtime must be listed
+# here explicitly. `preload.cjs` being omitted once shipped a build with no window
+# controls at all (the bridge never loaded); scripts/afterPack.cjs now fails the
+# build if any required file is missing from app.asar.
+files:
+  - main.cjs
+  - preload.cjs
+  - window-state.cjs
+  - taskbar-light.ico
+  - taskbar-dark.ico
+  - package.json
+  - '!scripts/**/*'
+  - '!server/**/*'
+
+# Post-package guard: assert app.asar actually contains the files main.cjs loads
+# (itself + preload.cjs) before any installer is produced. Prevents a silent
+# recurrence of the dropped-preload defect above.
+afterPack: scripts/afterPack.cjs
+
+# The self-contained server tree (build/ + Electron-ABI node_modules) assembled
+# by scripts/prepare-server.mjs. Copied verbatim into resources/server; main.cjs
+# resolves it via process.resourcesPath.
+extraResources:
+  - from: server
+    to: server
+    filter:
+      - '**/*'
+
+# prepare-server.mjs already rebuilt the native module for the Electron ABI;
+# don't let electron-builder try to rebuild the (non-native) desktop deps.
+npmRebuild: false
+nodeGypRebuild: false
+
+win:
+  target:
+    - nsis
+
+# Microsoft Store package (MSIX). Built only by `pnpm msix` (electron-builder --win appx; not
+# `pnpm store`, which is pnpm's own command);
+# releases still ship the zip from `pnpm portable`. The three identity values are copied from
+# Partner Center (the app's overview, Product management, View app identity details); they are
+# case-sensitive and the punctuation must match. No certificate: the Store signs the package
+# after certification. The images are build-resources/appx/, made by scripts/make-icon.py.
+# The version is package.json's, as 26.11.0.0 (the Store refuses a first part of 0 and wants the
+# fourth part 0, so setBuildNumber stays off).
+appx:
+  identityName: JAMLab.Miserly
+  publisher: CN=85A7ACFF-BD96-482B-8CFD-10DDA0A4BD9B
+  publisherDisplayName: JAM Lab
+  applicationId: Miserly
+  displayName: Miserly
+  backgroundColor: transparent
+  languages:
+    - en-US
+  minVersion: 10.0.17763.0
+  maxVersionTested: 10.0.26100.0
+  artifactName: Miserly-${version}-store.${ext}
+linux:
+  target:
+    - AppImage
+  category: Finance

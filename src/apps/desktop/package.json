@@ -1,0 +1,21 @@
+{
+  "name": "@miserly/desktop",
+  "private": true,
+  "version": "26.11.0",
+  "description": "Miserly",
+  "type": "commonjs",
+  "main": "main.cjs",
+  "scripts": {
+    "prepare:server": "node scripts/prepare-server.mjs",
+    "start": "pnpm prepare:server && electron .",
+    "exe": "pnpm prepare:server && electron-builder --dir",
+    "portable": "pnpm exe && node scripts/portable-zip.mjs",
+    "msix": "pnpm prepare:server && electron-builder --win appx",
+    "dist": "pnpm prepare:server && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "esbuild": "0.25.12"
+  }
+}

@@ -1,0 +1,24 @@
+# Build context is the workspace root (src/); keep it lean — only what the Docker build needs.
+**/node_modules
+**/.svelte-kit
+**/build
+**/dist
+**/data
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/coverage
+**/.vitest
+apps/web/test
+apps/web/tests
+packages/*/test
+**/playwright-report
+**/test-results*
+apps/desktop
+**/.git
+**/.vscode
+**/.env*
+**/*.pem
+**/*.key
+**/.DS_Store
+**/*.log
