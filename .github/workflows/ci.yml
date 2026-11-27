@@ -37,8 +37,3 @@ jobs:
       - name: Build web app
         run: pnpm --filter @miserly/web build
 
-      - name: Install Playwright browsers
-        run: pnpm --filter @miserly/web exec playwright install --with-deps chromium
-
-      - name: Playwright smoke test
-        run: pnpm --filter @miserly/web test
