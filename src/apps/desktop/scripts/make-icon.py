@@ -18,7 +18,8 @@ else goes in that folder. Windows picks a file by its name:
   colour (deep gold, the diamond at two thirds of the plate).
 - StoreLogo: the installer and the Store (deep gold, edge to edge, as the .ico).
 - Square150x150Logo and Wide310x150Logo: Windows 10's Start tiles (the diamond at half the height).
-store-tile-300.png sits outside appx/ (it is uploaded to the listing, not packed)."""
+store-tile-300.png sits outside appx/ (it is uploaded to the listing, not packed): the diamond at
+76 % of the tile with a 2.25 line (option B, 2026-11-27)."""
 import math, os
 from PIL import Image, ImageDraw
 
@@ -32,11 +33,11 @@ root = os.path.join(here, '..')
 resources = os.path.join(root, 'build-resources')
 appx = os.path.join(resources, 'appx')
 
-def draw(size, gold):
+def draw(size, gold, stroke24=None):
     ss = size * 8
     im = Image.new('RGBA', (ss, ss), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    stroke = (2.25 if size <= 24 else 1.5) / 24 * ss
+    stroke = (stroke24 or (2.25 if size <= 24 else 1.5)) / 24 * ss
     m = ss / 2
     def diamond(r):
         return [(m, m - r), (m + r, m), (m, m + r), (m - r, m)]
@@ -50,13 +51,13 @@ def ico(path, gold):
     print(path, os.path.getsize(path))
     return imgs
 
-def png(path, w, h, share, gold):
+def png(path, w, h, share, gold, stroke24=None):
     """A w x h transparent image with the diamond centred, its size `share` of the height."""
     size = math.floor(h * share + 0.5)
     if (h - size) % 2:
         size -= 1  # same parity as the canvas, so it centres on whole pixels
     im = Image.new('RGBA', (w, h), (0, 0, 0, 0))
-    im.paste(draw(size, gold), ((w - size) // 2, (h - size) // 2))
+    im.paste(draw(size, gold, stroke24), ((w - size) // 2, (h - size) // 2))
     im.save(path)
 
 imgs = ico(os.path.join(resources, 'icon.ico'), DEEP)
@@ -79,5 +80,7 @@ for s in SCALES:
     png(os.path.join(appx, f'Square150x150Logo.scale-{s}.png'), px(150), px(150), 1 / 2, DEEP)
     png(os.path.join(appx, f'Wide310x150Logo.scale-{s}.png'), px(310), px(150), 1 / 2, DEEP)
 print(appx, len(os.listdir(appx)), 'files')
-png(os.path.join(resources, 'store-tile-300.png'), 300, 300, 1, DEEP)
+# The listing's tile: the Store shows it at 100 px beside the name, where an edge-to-edge outline
+# stood taller than the text and read empty; the diamond at 76 % with the small sizes' heavier line.
+png(os.path.join(resources, 'store-tile-300.png'), 300, 300, 0.76, DEEP, 2.25)
 print(os.path.join(resources, 'store-tile-300.png'))
