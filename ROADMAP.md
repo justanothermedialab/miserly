@@ -11,18 +11,18 @@ What we plan to work on after 26.11.0. There are no dates.
 
 - The Microsoft Store copy, signed by Microsoft and kept up to date by the Store.
 
-## At $20 a month
+## At $25 a month
 
-This pays for a basic AI plan, the tools used to write and check the code: enough to keep Miserly
-maintained.
+This pays for a basic AI plan, the tools used to write and check the code, with India's 18 % GST
+on it: enough to keep Miserly maintained.
 
 - Fixes for problems reported in Issues.
 - Security updates to the packages Miserly uses.
 - New versions that keep working on new Windows, Node.js and Docker releases.
 
-## At $100 a month
+## At $120 a month
 
-This pays for a larger AI plan, enough for new features.
+This pays for a larger AI plan with its GST, enough for new features.
 
 **Installing and updating**
 
@@ -61,9 +61,10 @@ This pays for a larger AI plan, enough for new features.
 - A sign-in lockout that holds across a restart.
 - Removing a removed member's data for good.
 
-## At $200 to $500 a month
+## Later
 
-The largest AI plans, for the bigger pieces of work.
+The bigger pieces of work. They have no price: they follow the list above, in the order people ask
+for them.
 
 **Money and accounts**
 
